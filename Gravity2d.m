@@ -1,0 +1,119 @@
+% TEMPLATE FOR THREE-BODY ANIMATION
+clearvars, clc
+
+% Initial conditions for three bodies
+v10 = 10;
+angle1 = 45;  % degrees
+x10 = 0;
+y10 = 0;
+vx10 = v10 * cosd(angle1);
+vy10 = v10 * sind(angle1);
+
+v20 = 11;
+angle2 = 225;  % degrees
+x20 = 50;
+y20 = 0;
+vx20 = v20 * cosd(angle2);
+vy20 = v20 * sind(angle2);
+
+v30 = 10;
+angle3 = 225;  % degrees
+x30 = 25;
+y30 = 50;
+vx30 = v30 * cosd(angle3);
+vy30 = v30 * sind(angle3);
+
+initial_state = [x10; y10; vx10; vy10; x20; y20; vx20; vy20; x30; y30; vx30; vy30];
+
+% Solve
+tspan = 0:0.1:30;  % Maximum 30 seconds
+[t, state] = ode45(@projectile_derivatives, tspan, initial_state);
+
+% Extract trajectories
+x1 = state(:,1);
+y1 = state(:,2);
+x2 = state(:,5);
+y2 = state(:,6);
+x3 = state(:,9);
+y3 = state(:,10);
+
+% Plot results
+axis([-100, 100, -100, 100]);
+hold on;
+
+moving_object1 = plot(x1(1), y1(1), 'ro');
+moving_object2 = plot(x2(1), y2(1), 'bo');
+moving_object3 = plot(x3(1), y3(1), 'go');
+trail1 = plot(x1(1), y1(1), 'r-');
+trail2 = plot(x2(1), y2(1), 'b-');
+trail3 = plot(x3(1), y3(1), 'g-');
+
+for i = 1:length(t)
+% Update object position
+set(moving_object1, 'XData', x1(i), 'YData', y1(i));
+set(moving_object2, 'XData', x2(i), 'YData', y2(i));
+set(moving_object3, 'XData', x3(i), 'YData', y3(i));
+set(trail1, 'XData', x1(1:i), 'YData', y1(1:i));
+set(trail2, 'XData', x2(1:i), 'YData', y2(1:i));
+set(trail3, 'XData', x3(1:i), 'YData', y3(1:i));
+
+
+% Force redraw
+drawnow;
+
+% Control speed
+pause(0.1);
+end
+
+% LOCAL FUNCTIONS (must be at the end)
+function dstate = projectile_derivatives(t, state)
+    % Extract current state
+    x1 = state(1);
+    y1 = state(2);
+    vx1 = state(3);
+    vy1 = state(4);
+    x2 = state(5);
+    y2 = state(6);
+    vx2 = state(7);
+    vy2 = state(8);
+    x3 = state(9);
+    y3 = state(10);
+    vx3 = state(11);
+    vy3 = state(12);
+    
+    % Parameters
+    m = [10, 10, 10];        % Mass
+    G = 500;
+    
+    % Distances
+    d12 = [x2-x1, y2-y1];
+    d13 = [x3-x1, y3-y1];
+    d21 = [x1-x2, y1-y2];
+    d23 = [x3-x2, y3-y2];
+    d31 = [x1-x3, y1-y3];
+    d32 = [x2-x3, y2-y3];
+    
+    % Force magnitude
+    f1 = ((G*m(1)*m(2)/(norm(d12))^3)*d12) + ((G*m(1)*m(3)/(norm(d13))^3)*d13);
+    f2 = ((G*m(2)*m(1)/(norm(d21))^3)*d21) + ((G*m(2)*m(3)/(norm(d23))^3)*d23);
+    f3 = ((G*m(3)*m(1)/(norm(d31))^3)*d31) + ((G*m(3)*m(2)/(norm(d32))^3)*d32);
+    
+    % Derivatives
+    dx1dt = vx1;
+    dy1dt = vy1;
+    dvx1dt = f1(1) / m(1);
+    dvy1dt = f1(2) / m(1);
+    
+    dx2dt = vx2;
+    dy2dt = vy2;
+    dvx2dt = f2(1) / m(2);
+    dvy2dt = f2(2) / m(2);
+    
+    dx3dt = vx3;
+    dy3dt = vy3;
+    dvx3dt = f3(1) / m(3);
+    dvy3dt = f3(2) / m(3);
+    
+    % Return as column vector
+    dstate = [dx1dt; dy1dt; dvx1dt; dvy1dt; dx2dt; dy2dt; dvx2dt; dvy2dt; dx3dt; dy3dt; dvx3dt; dvy3dt];
+end

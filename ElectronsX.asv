@@ -1,0 +1,174 @@
+% Variable number of Electrons
+
+clearvars, clc
+
+electron_num = 5
+theta0 = 360 * rand(electron_num,1)
+phi0 = 360 * rand(electron_num,1)
+
+rand_position = [sind(phi0) .* cosd(theta0), sind(phi0) .* sind(theta0), cosd(phi0)];
+
+velocity = zeros([electron_num,3]);
+
+initial_block = [rand_position, velocity];
+
+initial_state = reshape(initial_block,electron_num * 6,1);
+
+% Solve
+
+tspan = 0 : 0.00001 : 20;
+[t, state] = ode45(@electron_derivatives, tspan, initial_state);
+
+% Axis Limits
+
+lims = [-2 2];
+
+% Setup
+
+figure('Color', 'w', 'Position', [100, 100, 1000, 800])
+
+% Trail lines 
+
+tvib_colors = ['r-';...
+              'g-';...
+              'b-';...
+              'y-';...
+              'c-';...
+              'm-';...
+              'w-'];
+vib_colors = ["r";...
+              "g";...
+              "b";...
+              "y";...
+              "c";...
+              "m";...
+              "w"];
+
+[X,Y,Z] = sphere(20);
+hold on
+sphere_size = 0.1;
+trail = zeros(electron_num,1);
+sphere_b = zeros(electron_num,1);
+for j = 1:electron_num
+    hold on
+    trail(j) = plot3(state(1,j),...
+                     state(1,electron_num+j),...
+                     state(1,2*electron_num+j),...
+                     '-','Color',vib_colors(1+mod(j,7),:),...
+                     'LineWidth', 0.2);
+    sphere_b(j) = surf(X*sphere_size + state(1,0+j),...
+                     Y*sphere_size + state(1,electron_num+j),...
+                     Z*sphere_size + state(1,2*electron_num+j),...
+                     'FaceColor', vib_colors(1+mod(j,7),:), 'EdgeColor', 'none', 'FaceAlpha', 0.9);
+end
+
+
+% Axes
+
+xlabel('X Position', 'FontSize', 12)
+ylabel('Y Position', 'FontSize', 12)
+zlabel('Z Position', 'FontSize', 12)
+grid on
+axis equal
+xlim(lims)
+ylim(lims)
+zlim(lims)
+lighting gouraud
+light('Position', [1, 1, 1])
+
+% Animation
+
+for i = 1:10000:length(t)
+    
+    for j = 1:electron_num
+
+        set(trail(j),'XData', state(i,j), 'YData', state(i,electron_num+j), 'ZData', state(i,2*electron_num+j));
+        set(sphere_b(j), 'XData', X*sphere_size + state(i,j), 'YData', Y*sphere_size + state(i,electron_num+j), 'ZData', Z*sphere_size + state(i,2*electron_num+j));
+    end 
+    % Update view angle
+    view_angle = 30 + t(i) * 1;
+    view(view_angle, 20)
+    
+    % Update title
+    title(sprintf('Three-Body Problem | Time: %.2f s', t(i)), 'FontSize', 14)
+    
+    drawnow;
+
+    pause(0.1); % Control the animation speed
+end
+
+hold off
+
+function dstate = electron_derivatives(t, state, electron_num)
+
+electro
+% Extract values
+
+pstate = state(1:3*electron_num);
+vstate = state(3*electron_num+1:6*electron_num);
+
+p = reshape(pstate, [electron_num,3,1]);
+v = reshape(vstate, [electron_num,3,1]);
+
+% Parameters
+    
+    
+    K = 1;
+    Q = ones(electron_num,1);
+    M = ones(electron_num,1);
+    Mu = 1;
+   
+% Functions
+
+function F = forceBtw(cord)
+    
+    if cord(1) == cord(2)
+        F = [0,0,0];
+    else
+        F = (K*Q(cord(1))*Q(cord(2)) * ((p(cord(1),:)-p(cord(2),:)) /(norm(p(cord(1),:)-p(cord(2),:)))^3));
+    end
+
+end
+
+
+% Displays
+
+sum_p = norm(sum(p,1))
+
+% Create Position Coords
+
+[X, Y] = meshgrid(1:electron_num);
+
+points_x = X(:);
+points_y = Y(:);
+points_matrix = [points_x, points_y];
+
+C_points = num2cell(points_matrix, 2);
+coords = reshape(C_points,[electron_num,electron_num]);
+
+% CELL FUN!!!
+
+f_cell = cellfun(@forceBtw,coords,'UniformOutput',false);
+f_3d = cell2mat(reshape(f_cell, electron_num, 1,[]));
+f_sq = sum(f_3d,1);
+f = reshape(f_sq,3,electron_num)';
+
+magp = vecnorm(p, 2, 2);
+magv = vecnorm(v, 2, 2);
+f_proj = ((dot(f,p,2) ./ magp.^2) .* p);
+f_centri = ((M .* magv.^2 ./ magp.^2) .* p);
+f_drag = Mu * v;
+f_tot = f - f_proj - f_centri - f_drag;
+a = f_tot ./ M;
+dpdt = reshape(v,electron_num*3,1);
+dvdt = reshape(a,electron_num*3,1);
+dstate = [dpdt;dvdt];
+
+end
+
+
+
+
+
+
+
