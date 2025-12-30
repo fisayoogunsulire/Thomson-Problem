@@ -1,10 +1,17 @@
-% Variable number of Electrons
-
 clearvars, clc
 
-electron_num = 5
-theta0 = 360 * rand(electron_num,1)
-phi0 = 360 * rand(electron_num,1)
+% Configuration Variables
+
+electron_num = 5;
+
+Mu = 1;
+
+tspan = 0 : 0.00001 : 20;
+
+% Initial State Calculation
+
+theta0 = 360 * rand(electron_num,1);
+phi0 = 360 * rand(electron_num,1);
 
 rand_position = [sind(phi0) .* cosd(theta0), sind(phi0) .* sind(theta0), cosd(phi0)];
 
@@ -16,8 +23,7 @@ initial_state = reshape(initial_block,electron_num * 6,1);
 
 % Solve
 
-tspan = 0 : 0.00001 : 20;
-[t, state] = ode45(@(t,state) electron_derivatives(t, state, electron_num), tspan, initial_state);
+[t, state] = ode45(@(t,state) electron_derivatives(t, state, electron_num, Mu), tspan, initial_state);
 
 % Axis Limits
 
@@ -27,15 +33,8 @@ lims = [-2 2];
 
 figure('Color', 'w', 'Position', [100, 100, 1000, 800])
 
-% Trail lines 
+% Colors 
 
-tvib_colors = ['r-';...
-              'g-';...
-              'b-';...
-              'y-';...
-              'c-';...
-              'm-';...
-              'w-'];
 vib_colors = ["r";...
               "g";...
               "b";...
@@ -43,6 +42,7 @@ vib_colors = ["r";...
               "c";...
               "m";...
               "w"];
+% Sphere Creation
 
 [X,Y,Z] = sphere(20);
 hold on
@@ -79,11 +79,11 @@ for i = 1:10000:length(t)
         set(sphere_b(j), 'XData', X*sphere_size + state(i,j), 'YData', Y*sphere_size + state(i,electron_num+j), 'ZData', Z*sphere_size + state(i,2*electron_num+j));
     end 
     % Update view angle
-    view_angle = 30 + t(i) * 1;
+    view_angle = 30 + t(i) * 10;
     view(view_angle, 20)
     
     % Update title
-    title(sprintf('Three-Body Problem | Time: %.2f s', t(i)), 'FontSize', 14)
+    title(sprintf('Thompson Problem | Time: %.2f s', t(i)), 'FontSize', 14)
     
     drawnow;
 
@@ -92,7 +92,7 @@ end
 
 hold off
 
-function dstate = electron_derivatives(t, state, electron_num)
+function dstate = electron_derivatives(t, state, electron_num, Mu)
 
 
 % Extract values
@@ -109,7 +109,6 @@ v = reshape(vstate, [electron_num,3,1]);
     K = 1;
     Q = ones(electron_num,1);
     M = ones(electron_num,1);
-    Mu = 1;
    
 % Functions
 
@@ -126,7 +125,7 @@ end
 
 % Displays
 
-sum_p = norm(sum(p,1));
+sum_p = norm(sum(p,1))
 
 % Create Position Coords
 
